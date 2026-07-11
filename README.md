@@ -5,16 +5,16 @@ A full-stack Signal-style messenger with a Django REST Framework backend, WebSoc
 ## Tech Stack
 
 **Backend**
-- Django REST Framework — HTTP APIs
-- Django Channels — real-time WebSocket messaging
+- Django 5.x + Django REST Framework — HTTP APIs
+- Django Channels + Daphne — ASGI server and WebSocket support
 - SimpleJWT — JWT authentication (access + refresh + blacklist)
-- SQLite (local development)
-- Local media uploads for avatars and file attachments
+- SQLite (local development) / PostgreSQL (production)
+- Pillow — image processing for avatars and attachments
 
 **Frontend**
-- React 19 + TanStack Start / TanStack Router
+- React 19 + TanStack Start / TanStack Router — SSR-capable SPA
 - TanStack React Query — server state management
-- Tailwind CSS + shadcn/ui — styling and components
+- Tailwind CSS v4 + shadcn/ui — styling and components
 - Native WebSocket API — real-time updates
 - Sonner — toast notifications
 
@@ -37,43 +37,16 @@ A full-stack Signal-style messenger with a Django REST Framework backend, WebSoc
 - **Mobile responsive** — slide between conversation list and chat view
 
 ### Bonus Features
-
-#### Attachments
-- Upload files via paperclip button or drag-and-drop
-- Supports images, video, audio, PDF, and documents (10 MB limit, 5 files max)
-- Inline image/video preview in chat, download links for documents
-- MIME type validation on the server
-
-#### Reply / Quoted Messages
-- Reply to any message via the three-dot menu
-- Quoted preview shown above the composer before sending
-- Quoted block rendered inside the receiving message bubble
-- Click the quoted block to scroll to the original message
-
-#### Disappearing Messages
-- Set a per-conversation timer: Off, 30 seconds, 5 minutes, 1 hour, 1 day
-- Configurable from the conversation header menu
-- New messages automatically get an `expires_at` timestamp
-- Expired messages are filtered out of queries
-- Hourglass icon on messages that will expire
-- Server-side cleanup endpoint for bulk deletion of expired messages
-
-#### Keyboard Shortcuts
-| Shortcut | Action |
-|---|---|
-| `Ctrl/⌘ + K` | Toggle message search |
-| `Esc` | Close dialog / Back to conversation list |
-| `Enter` | Send message |
-| `Shift + Enter` | New line in composer |
-| `↑ / ↓` | Navigate between conversations |
-
-All shortcuts listed in the Settings dialog.
+- **Attachments** — file upload via paperclip or drag-and-drop (images, video, audio, PDF, documents; 10 MB limit, 5 files max)
+- **Reply / Quoted Messages** — quote-reply to any message with scroll-to-original
+- **Disappearing Messages** — per-conversation timer (Off, 30s, 5m, 1h, 1d)
+- **Keyboard Shortcuts** — Ctrl/⌘+K (search), Esc (close), ↑/↓ (navigate), Enter (send)
 
 ## Architecture
 
 ```
 backend/
-  config/          # Django settings, ASGI/WSGI, root URL routing
+  config/            # Django settings (base/dev/prod), ASGI/WSGI, root URL routing
   apps/
     authentication/  # register, login, logout, OTP, JWT refresh
     users/           # user profiles, search
@@ -81,17 +54,145 @@ backend/
     chat/            # conversations, messages, reactions, receipts, typing, attachments
     groups/          # group metadata and membership
     websocket/       # WebSocket auth middleware and chat consumer
-    common/          # shared pagination, permissions, helpers
-  media/           # uploaded files (avatars, attachments)
+    common/          # shared utilities
+  media/             # uploaded files (avatars, attachments)
   static/
 
 Frontend/
   src/
     components/signal/   # UI components (ChatWindow, Sidebar, Settings, etc.)
     hooks/               # custom hooks (useChatWebSocket, useKeyboardShortcuts)
-    lib/                 # API client, adapters, utilities
+    lib/                 # API client, adapters, utilities, constants
     routes/              # TanStack Router routes
+    styles.css           # Tailwind CSS entry point
 ```
+
+## Environment Variables
+
+### Backend (`backend/.env`)
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `SECRET_KEY` | **Yes** | dev placeholder | Django secret key |
+| `DEBUG` | No | `true` | Enable debug mode |
+| `DJANGO_SETTINGS_MODULE` | No | `config.settings.dev` | Settings module (`config.settings.prod` for production) |
+| `ALLOWED_HOSTS` | No | `localhost,127.0.0.1,testserver` | Comma-separated allowed hosts |
+| `DATABASE_URL` | No | `sqlite:///db.sqlite3` | Database URL (supports PostgreSQL via `postgres://` or `postgresql://`) |
+| `JWT_SECRET` | **Yes** | dev placeholder | JWT signing key |
+| `JWT_ACCESS_MINUTES` | No | `30` | Access token lifetime |
+| `JWT_REFRESH_DAYS` | No | `7` | Refresh token lifetime |
+| `FRONTEND_URL` | No | `http://localhost:5173` | Frontend origin for CORS/redirects |
+| `CORS_ALLOWED_ORIGINS` | No | localhost variants | Comma-separated CORS origins |
+| `CSRF_TRUSTED_ORIGINS` | No | localhost variants | Comma-separated CSRF trusted origins |
+| `STATIC_ROOT` | No | `static` | Static files output directory |
+| `MEDIA_ROOT` | No | `backend/media` | Media uploads directory |
+| `MEDIA_URL` | No | `/media/` | Media URL path |
+
+### Frontend (`Frontend/.env`)
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `VITE_API_URL` | No | `http://localhost:8000` | Backend API base URL |
+
+## Local Setup
+
+### Prerequisites
+- Python 3.11+
+- Node.js 18+ (or npm)
+
+### Backend
+
+```bash
+cd backend
+python -m venv venv
+source venv/bin/activate          # Windows: venv\Scripts\activate
+pip install -r requirements.txt   # For development with linting: pip install -r requirements-dev.txt
+cp ../.env.example .env           # Edit with your own secrets
+python manage.py migrate
+python manage.py createsuperuser
+python manage.py runserver        # Starts on http://localhost:8000
+```
+
+### Frontend
+
+```bash
+cd Frontend
+npm install
+cp .env.example .env              # Edit VITE_API_URL if backend runs on a different port
+npm run dev                       # Starts on http://localhost:5173
+```
+
+### Seed Demo Data
+
+```bash
+python backend/manage.py seed_demo_data
+```
+
+### Tests
+
+```bash
+cd backend
+pip install -r requirements-dev.txt
+pytest
+```
+
+## Build Commands
+
+```bash
+# Frontend production build
+cd Frontend && npm run build
+
+# Backend Django system check
+cd backend && python manage.py check
+
+# TypeScript type checking
+cd Frontend && npx tsc --noEmit
+```
+
+## Production Deployment
+
+### Backend
+
+1. Set environment variables (see table above):
+   - `DJANGO_SETTINGS_MODULE=config.settings.prod`
+   - `DEBUG=false`
+   - Strong `SECRET_KEY` and `JWT_SECRET`
+   - `ALLOWED_HOSTS` with your domain
+   - `DATABASE_URL` pointing to PostgreSQL
+   - `CORS_ALLOWED_ORIGINS` with your frontend domain
+   - `CSRF_TRUSTED_ORIGINS` with your frontend domain
+
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. Run migrations and collect static:
+   ```bash
+   python manage.py migrate
+   python manage.py collectstatic
+   ```
+
+4. Run with Daphne (ASGI) for WebSocket support:
+   ```bash
+   daphne -b 0.0.0.0 -p 8000 config.asgi:application
+   ```
+
+### Frontend
+
+1. Set `VITE_API_URL` to your backend's public URL.
+2. Build:
+   ```bash
+   npm run build
+   ```
+3. Deploy the `.output/` directory to your hosting provider.
+
+### Production Notes
+
+- Replace the in-memory channel layer with **Redis** for multi-process WebSocket deployments (`channels_redis`)
+- Serve media files from durable storage (S3, GCS, or equivalent) via `django-storages`
+- Use **PostgreSQL** instead of SQLite for production
+- The WebSocket URL is constructed dynamically from `VITE_API_URL` and `window.location.protocol` (auto-selects `ws://` or `wss://`)
 
 ## Database Schema
 
@@ -106,7 +207,7 @@ Frontend/
 - `chat.ReadReceipt`
 - `groups.Group`, `groups.GroupMember`
 
-## API Endpoints
+## API Overview
 
 ### Authentication
 - `POST /api/auth/register/`
@@ -153,75 +254,18 @@ Frontend/
 ## WebSocket
 
 ```
-ws://localhost:8000/ws/chat/<conversation_id>/?token=<access_token>
+ws[s]://<host>/ws/chat/<conversation_id>/?token=<access_token>
 ```
 
-Events:
-- `message` — new message broadcast
-- `typing` — typing indicator
-- `read` — read receipt
-- `reaction` — reaction added/removed
-- `status` — online/typing/read status updates
+The protocol (`ws://` or `wss://`) is selected automatically based on the page's protocol.
 
-## Environment Variables
-
-- `SECRET_KEY`
-- `DEBUG`
-- `ALLOWED_HOSTS`
-- `DATABASE_URL`
-- `JWT_SECRET`
-- `FRONTEND_URL`
-- `MEDIA_ROOT`
-- `MEDIA_URL`
-
-## Getting Started
-
-### Backend
-
-```bash
-cd backend
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-cp ../.env.example .env
-python manage.py migrate
-python manage.py createsuperuser
-python manage.py runserver
-```
-
-### Frontend
-
-```bash
-cd Frontend
-bun install
-bun run dev
-```
-
-### Seed Demo Data
-
-```bash
-python backend/manage.py seed_demo_data
-```
-
-### Tests
-
-```bash
-cd backend
-pytest
-```
-
-## Deployment Notes
-
-- Set `DEBUG=false` in production
-- Provide a strong `SECRET_KEY`
-- Replace in-memory channel layer with Redis for multi-process WebSocket deployments
-- Serve media from durable storage (S3, GCS) in production
-- Use a production database (PostgreSQL) instead of SQLite
-
-## Known Assumptions
-
-- JWT refresh/logout uses SimpleJWT blacklist support
-- OTP is mock-only and returns the code in the API response
-- WebSocket authentication uses the JWT access token in the query string
-- SQLite is used for local development
-- File uploads validated server-side (10 MB max, MIME type prefix matching)
+**Events:**
+| Direction | Type | Payload |
+|---|---|---|
+| Server → Client | `message` | `{ id, sender, content, created_at }` |
+| Server → Client | `typing` | `{ user_id, value }` |
+| Server → Client | `reaction` | `{ user_id, emoji, deleted }` |
+| Server → Client | `read` | `{ user_id }` |
+| Client → Server | `message` | `{ type: "message", content }` |
+| Client → Server | `typing` | `{ type: "typing", is_typing }` |
+| Client → Server | `read` | `{ type: "read" }` |

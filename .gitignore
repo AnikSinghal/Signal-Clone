@@ -11,6 +11,8 @@ backend/staticfiles/
 backend/static/
 node_modules/
 Frontend/node_modules/
+Frontend/.output/
+Frontend/.wrangler/
 .idea/
 .vscode/
 dist/
@@ -18,4 +20,4 @@ build/
 .pytest_cache/
 .coverage
 htmlcov/
-.env.example
+coverage/
