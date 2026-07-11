@@ -77,7 +77,7 @@ export type BackendUser = {
   profile?: BackendProfile;
 };
 
-export type BackendContact = {
+type BackendContact = {
   id: string;
   contact: string;
   contact_user: BackendUser;
@@ -162,11 +162,11 @@ export type BackendGroup = {
   }>;
 };
 
-export type AuthPayload = StoredTokens & {
+type AuthPayload = StoredTokens & {
   user: BackendUser;
 };
 
-export type RegisterPayload = AuthPayload & {
+type RegisterPayload = AuthPayload & {
   otp_required?: boolean;
   mock_otp?: string;
 };
@@ -218,7 +218,7 @@ export async function logout() {
   }
 }
 
-export async function refreshTokens(refreshToken: string) {
+async function refreshTokens(refreshToken: string) {
   const data = await request<StoredTokens>(API.AUTH.REFRESH, {
     method: "POST",
     auth: false,
@@ -267,10 +267,6 @@ export async function createConversation(user?: string, title?: string) {
   });
 }
 
-export async function getConversation(conversationId: string) {
-  return request<BackendConversation>(`${API.CHAT.CONVERSATIONS}${conversationId}/`);
-}
-
 export async function listMessages(conversationId: string) {
   return unwrapList(await request<Paginated<BackendMessage>>(API.CHAT.MESSAGES(conversationId)));
 }
@@ -287,13 +283,6 @@ export async function sendMessage(conversationId: string, content: string, reply
   return request<BackendMessage>(API.CHAT.MESSAGES(conversationId), {
     method: "POST",
     body: form,
-  });
-}
-
-export async function updateMessage(messageId: string, content: string) {
-  return request<BackendMessage>(API.CHAT.MESSAGE_DETAIL(messageId), {
-    method: "PATCH",
-    body: { content },
   });
 }
 
@@ -339,10 +328,6 @@ export async function createGroup(name: string, description = "") {
     method: "POST",
     body: { name, description },
   });
-}
-
-export async function getGroupMembers(groupId: string) {
-  return unwrapList(await request<Paginated<BackendGroup["members"][number]>>(API.GROUPS.MEMBERS(groupId)));
 }
 
 export async function addGroupMember(groupId: string, user: string) {

@@ -16,7 +16,7 @@ export type UIUser = {
   about?: string;
 };
 
-export type UIReaction = { emoji: string; count: number; byMe?: boolean };
+type UIReaction = { emoji: string; count: number; byMe?: boolean };
 
 export type UIAttachment = {
   id: string;

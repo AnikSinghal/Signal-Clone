@@ -162,13 +162,6 @@ export function useChatWebSocket({
     }
   }, []);
 
-  const sendRead = useCallback(() => {
-    const socket = socketRef.current;
-    if (socket && socket.readyState === WebSocket.OPEN) {
-      socket.send(JSON.stringify({ type: "read" }));
-    }
-  }, []);
-
   const remoteTyping = typingUserIds.size > 0;
-  return { remoteTyping, sendMessage, sendTyping, sendRead };
+  return { remoteTyping, sendMessage, sendTyping };
 }

@@ -4,6 +4,7 @@ import { Avatar } from "./Avatar";
 import type { UIConversation, UIMessage, UIUser, UIAttachment } from "@/lib/adapters";
 import { formatMessageTime, formatDayDivider } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { MAX_FILES_PER_MESSAGE, ACCEPTED_FILE_TYPES, DISAPPEARING_DURATIONS } from "@/lib/constants";
 import { toast } from "sonner";
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel,
@@ -148,8 +149,8 @@ export function ChatWindow({
 
   function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
-    if (files.length + pendingFiles.length > 5) {
-      toast.error("Maximum 5 files per message");
+    if (files.length + pendingFiles.length > MAX_FILES_PER_MESSAGE) {
+      toast.error(`Maximum ${MAX_FILES_PER_MESSAGE} files per message`);
       return;
     }
     setPendingFiles((prev) => [...prev, ...files]);
@@ -164,8 +165,8 @@ export function ChatWindow({
     e.preventDefault();
     setDragOver(false);
     const files = Array.from(e.dataTransfer.files);
-    if (files.length + pendingFiles.length > 5) {
-      toast.error("Maximum 5 files per message");
+    if (files.length + pendingFiles.length > MAX_FILES_PER_MESSAGE) {
+      toast.error(`Maximum ${MAX_FILES_PER_MESSAGE} files per message`);
       return;
     }
     setPendingFiles((prev) => [...prev, ...files]);
@@ -226,13 +227,7 @@ export function ChatWindow({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuLabel className="text-[10px] font-semibold uppercase text-signal-muted">Disappearing Messages</DropdownMenuLabel>
-              {[
-                { value: 0, label: "Off" },
-                { value: 30, label: "30 Seconds" },
-                { value: 300, label: "5 Minutes" },
-                { value: 3600, label: "1 Hour" },
-                { value: 86400, label: "1 Day" },
-              ].map((opt) => (
+              {DISAPPEARING_DURATIONS.map((opt) => (
                 <DropdownMenuItem key={opt.value} onSelect={() => onSetDisappearing?.(opt.value)}>
                   <span className="mr-2 w-4 text-center">{conversation.disappearingDuration === opt.value ? "✓" : ""}</span>
                   {opt.label}
@@ -368,7 +363,7 @@ export function ChatWindow({
         <div className="mx-auto flex max-w-3xl items-end gap-2">
           <ComposerBtn label="Emoji" onClick={() => setShowEmoji((v) => !v)}><Smile size={20} /></ComposerBtn>
           <ComposerBtn label="Attach" onClick={() => fileInputRef.current?.click()}><Paperclip size={20} /></ComposerBtn>
-          <input ref={fileInputRef} type="file" multiple accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt" className="hidden" onChange={handleFileSelect} />
+          <input ref={fileInputRef} type="file" multiple accept={ACCEPTED_FILE_TYPES} className="hidden" onChange={handleFileSelect} />
           <div className="flex flex-1 items-center rounded-2xl bg-signal-bg px-3 py-2">
             <textarea
               rows={1}

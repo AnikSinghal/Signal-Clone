@@ -3,7 +3,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Avatar } from "./Avatar";
 import { Search, UserPlus, MessageCircle } from "lucide-react";
 import type { UIUser } from "@/lib/adapters";
-import { toUIUser } from "@/lib/adapters";
 import { useUserSearch } from "@/hooks/useUserSearch";
 import { toast } from "sonner";
 

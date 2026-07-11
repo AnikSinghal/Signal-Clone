@@ -1,12 +1,11 @@
 import mimetypes
 
-from django.conf import settings
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, permissions, serializers, status, views
 from rest_framework.response import Response
 
 from apps.chat.models import Attachment, Conversation, ConversationMember, Message
-from apps.chat.serializers import ConversationSerializer, MessageCreateSerializer, MessageSerializer, MessageUpdateSerializer
+from apps.chat.serializers import ConversationSerializer, MessageSerializer, MessageUpdateSerializer
 from apps.chat.services import broadcast_reaction, create_or_get_direct_conversation, mark_conversation_read, send_message, toggle_reaction, update_typing_status
 from apps.common.utils import resolve_user
 

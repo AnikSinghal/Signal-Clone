@@ -1,6 +1,3 @@
-from django.utils.text import slugify
-
-
 def initials_from_name(name):
     parts = [part for part in (name or "").replace("-", " ").split() if part]
     if not parts:
@@ -26,18 +23,6 @@ def color_from_key(key):
     return palette[sum(ord(char) for char in str(key)) % len(palette)]
 
 
-def unique_slug(base, existing_slugs):
-    candidate = slugify(base)
-    if candidate not in existing_slugs:
-        return candidate
-    index = 2
-    while True:
-        next_candidate = "%s-%s" % (candidate, index)
-        if next_candidate not in existing_slugs:
-            return next_candidate
-        index += 1
-
-
 def resolve_user(value):
     from django.contrib.auth import get_user_model
     User = get_user_model()
@@ -52,4 +37,3 @@ def resolve_user(value):
             or User.objects.filter(phone=value).first()
         )
     return user
-

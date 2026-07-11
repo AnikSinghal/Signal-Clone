@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Avatar } from "./Avatar";
-import { Search, UserPlus, UserMinus } from "lucide-react";
+import { Search, UserPlus, UserMinus, UserCheck } from "lucide-react";
 import type { BackendGroup } from "@/lib/backend";
 import type { UIUser } from "@/lib/adapters";
 import { useUserSearch } from "@/hooks/useUserSearch";
+import { toast } from "sonner";
 
 type GroupMembersDialogProps = {
   open: boolean;
@@ -12,9 +13,11 @@ type GroupMembersDialogProps = {
   group: BackendGroup | null;
   currentUserId: string;
   users: UIUser[];
+  contactIds: Set<string>;
   isAdmin: boolean;
   onAddMember: (userId: string) => Promise<void>;
   onRemoveMember: (userId: string | number) => Promise<void>;
+  onAddContact: (userId: string) => Promise<void>;
 };
 
 export function GroupMembersDialog({
@@ -23,9 +26,11 @@ export function GroupMembersDialog({
   group,
   currentUserId,
   users,
+  contactIds,
   isAdmin,
   onAddMember,
   onRemoveMember,
+  onAddContact,
 }: GroupMembersDialogProps) {
   const [query, setQuery] = useState("");
   const { results: searchResults } = useUserSearch(query);
@@ -47,6 +52,15 @@ export function GroupMembersDialog({
     return query.trim().length >= 2 ? fromSearch : fromProps;
   }, [currentUserId, memberIds, query, users, searchResults]);
 
+  async function handleAddContact(userId: string) {
+    try {
+      await onAddContact(userId);
+      toast.success("Contact added");
+    } catch {
+      toast.error("Failed to add contact");
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
@@ -66,35 +80,59 @@ export function GroupMembersDialog({
             <div>
               <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-signal-muted">Current members</div>
               <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
-                {group.members.map((member) => (
-                  <div key={member.id} className="flex items-center gap-3 rounded-xl border border-signal-border px-3 py-2">
-                    <Avatar
-                      initials={member.user.initials ?? member.user.username.slice(0, 2).toUpperCase()}
-                      color={member.user.avatar_color || "#3A76F0"}
-                      size={40}
-                      online={Boolean(member.user.profile?.is_online)}
-                      imageUrl={member.user.profile?.avatar ?? null}
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-sm font-medium text-signal-text">
-                        {member.user.name ?? member.user.username}
-                        {String(member.user.id) === currentUserId ? " (you)" : ""}
+                {group.members.map((member) => {
+                  const memberId = String(member.user.id);
+                  const isContact = contactIds.has(memberId);
+                  const isSelf = memberId === currentUserId;
+                  const displayName = member.user.name || member.user.phone || member.user.username;
+                  return (
+                    <div key={member.id} className="flex items-center gap-3 rounded-xl border border-signal-border px-3 py-2">
+                      <Avatar
+                        initials={member.user.initials ?? member.user.username.slice(0, 2).toUpperCase()}
+                        color={member.user.avatar_color || "#3A76F0"}
+                        size={40}
+                        online={Boolean(member.user.profile?.is_online)}
+                        imageUrl={member.user.profile?.avatar ?? null}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-medium text-signal-text">
+                          {displayName}
+                          {isSelf ? " (you)" : ""}
+                        </div>
+                        <div className="truncate text-xs text-signal-muted">
+                          {member.is_admin
+                            ? "Admin"
+                            : member.user.profile?.is_online
+                              ? "Online"
+                              : member.user.profile?.last_seen ?? member.user.phone ?? "Offline"}
+                        </div>
                       </div>
-                      <div className="truncate text-xs text-signal-muted">
-                        {member.is_admin ? "Admin" : member.user.profile?.is_online ? "Online" : member.user.profile?.last_seen ?? "Offline"}
-                      </div>
+                      {!isSelf && !isContact && (
+                        <button
+                          onClick={() => handleAddContact(memberId)}
+                          className="inline-flex items-center gap-1 rounded-lg bg-signal-accent px-2.5 py-1.5 text-xs font-medium text-white hover:bg-signal-accent/90"
+                        >
+                          <UserPlus size={14} />
+                          Add Contact
+                        </button>
+                      )}
+                      {!isSelf && isContact && (
+                        <span className="inline-flex items-center gap-1 text-xs text-signal-muted">
+                          <UserCheck size={14} />
+                        </span>
+                      )}
+                      {isAdmin && !isSelf && (
+                        <button
+                          onClick={() => onRemoveMember(member.user.id)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-signal-border px-2.5 py-1.5 text-xs font-medium text-signal-text hover:bg-signal-hover"
+                        >
+                          <UserMinus size={14} />
+                          Remove
+                        </button>
+                      )}
                     </div>
-                    {isAdmin && String(member.user.id) !== currentUserId && (
-                      <button
-                        onClick={() => onRemoveMember(member.user.id)}
-                        className="inline-flex items-center gap-1 rounded-lg border border-signal-border px-2.5 py-1.5 text-xs font-medium text-signal-text hover:bg-signal-hover"
-                      >
-                        <UserMinus size={14} />
-                        Remove
-                      </button>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 

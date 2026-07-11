@@ -3,7 +3,6 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from apps.users.models import Profile
-from apps.users.serializers import UserDetailSerializer
 
 User = get_user_model()
 
@@ -58,9 +57,3 @@ class OTPRequestSerializer(serializers.Serializer):
 class OTPVerifySerializer(serializers.Serializer):
     identifier = serializers.CharField()
     code = serializers.CharField()
-
-
-class TokenPairSerializer(serializers.Serializer):
-    access = serializers.CharField()
-    refresh = serializers.CharField()
-    user = UserDetailSerializer()

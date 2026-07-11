@@ -4,9 +4,7 @@ export const API = {
     LOGIN: "/api/auth/login/",
     LOGOUT: "/api/auth/logout/",
     REFRESH: "/api/auth/refresh/",
-    OTP_REQUEST: "/api/auth/otp/request/",
     OTP_VERIFY: "/api/auth/otp/verify/",
-    OTP_CHALLENGE: "/api/auth/otp/challenge/",
   },
   USERS: {
     ME: "/api/users/me/",

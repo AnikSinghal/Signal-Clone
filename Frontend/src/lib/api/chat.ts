@@ -1,13 +1,11 @@
 export {
-  createConversation,
-  deleteMessage,
-  getConversation,
   listConversations,
+  createConversation,
   listMessages,
-  markConversationRead,
-  reactToMessage,
   sendMessage,
+  deleteMessage,
+  reactToMessage,
+  markConversationRead,
   setTyping,
   updateConversationMember,
-  updateMessage,
 } from "../backend";

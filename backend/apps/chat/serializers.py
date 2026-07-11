@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from apps.chat.models import Attachment, Conversation, ConversationMember, Message, Reaction, ReadReceipt, TypingStatus
+from apps.chat.models import Attachment, Conversation, ConversationMember, Message, Reaction, ReadReceipt
 from apps.users.serializers import UserListSerializer
 
 
@@ -70,11 +70,6 @@ class MessageSerializer(serializers.ModelSerializer):
                 "username": sender.username,
             }
         return None
-
-
-class MessageCreateSerializer(serializers.Serializer):
-    content = serializers.CharField(required=False, allow_blank=True)
-    reply_to = serializers.UUIDField(required=False, allow_null=True)
 
 
 class MessageUpdateSerializer(serializers.Serializer):

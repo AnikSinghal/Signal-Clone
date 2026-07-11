@@ -1,7 +1,6 @@
 export {
-  addGroupMember,
-  createGroup,
-  getGroupMembers,
   listGroups,
+  createGroup,
+  addGroupMember,
   removeGroupMember,
 } from "../backend";

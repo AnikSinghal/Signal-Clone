@@ -2,7 +2,7 @@
 
 ## Summary
 
-All 4 bonus features implemented and verified. No existing functionality regressed.
+All 4 bonus features implemented and verified. No existing functionality regressed. Final cleanup pass completed — dead code removed, constants extracted, all checks passing.
 
 ---
 
@@ -52,7 +52,7 @@ Click the three-dot menu on any message → Reply. The quoted message appears ab
 ### Backend
 - `backend/apps/chat/models.py`:
   - `Conversation.DisappearingDuration` choices: Off, 30s, 5m, 1h, 1d
-  - `Conversation.disappearing_duration`IntegerField
+  - `Conversation.disappearing_duration` IntegerField
   - `Message.expires_at` (DateTimeField, nullable, indexed)
   - `MessageQuerySet.not_expired()` manager method
 - `backend/apps/chat/services.py` — `send_message()` auto-computes `expires_at` from conversation duration
@@ -66,9 +66,10 @@ Click the three-dot menu on any message → Reply. The quoted message appears ab
 ### Frontend
 - `Frontend/src/lib/adapters.ts` — `UIMessage.expiresAt`, `UIConversation.disappearingDuration`
 - `Frontend/src/lib/backend.ts` — `setDisappearingDuration()` function
+- `Frontend/src/lib/constants.ts` — `DISAPPEARING_DURATIONS` array
 - `Frontend/src/lib/api-routes.ts` — `DISAPPEARING` route
 - `Frontend/src/components/signal/ChatWindow.tsx`:
-  - Disappearing messages dropdown in header menu (Off, 30s, 5m, 1h, 1d)
+  - Dedicated hourglass icon dropdown in header (Off, 30s, 5m, 1h, 1d)
   - Hourglass icon on messages with `expiresAt`
 - `Frontend/src/routes/index.tsx` — `disappearingMutation` wired to ChatWindow
 
@@ -83,7 +84,7 @@ Open conversation header menu → select duration. New messages will auto-expire
 - `Frontend/src/hooks/useKeyboardShortcuts.ts` — New hook with global keydown listener
 - `Frontend/src/routes/index.tsx`:
   - `composerFocused` state tracked
-  - Shortcuts wired: Ctrl/⌘+K (search), Ctrl/⌘+N (new chat), Escape (close/back), Arrow Up/Down (navigate conversations)
+  - Shortcuts wired: Ctrl/⌘+K (search), Escape (close/back), Arrow Up/Down (navigate conversations)
 - `Frontend/src/components/signal/ChatWindow.tsx`:
   - Composer `onFocus`/`onBlur` report to parent
   - Listens for `signal:toggle-search` custom event
@@ -94,7 +95,6 @@ Open conversation header menu → select duration. New messages will auto-expire
 | Shortcut | Action |
 |---|---|
 | Ctrl/⌘ + K | Toggle search |
-| Ctrl/⌘ + N | New conversation |
 | Esc | Close dialog / Back to list |
 | Enter | Send message |
 | Shift + Enter | New line |
@@ -102,25 +102,52 @@ Open conversation header menu → select duration. New messages will auto-expire
 
 ---
 
-## Verification
+## UI Polish
+
+- **Copy message**: Message dropdown copies actual text content to clipboard with toast confirmation
+- **Toast notifications**: New messages show sender name + message preview (DMs) or "Sender — Group Name" (groups)
+- **Auto-mark-as-read**: Conversations auto-marked as read on mount and when new messages arrive
+- **Dropdown items**: All `DropdownMenuItem` use `onSelect` (Radix UI canonical API) instead of `onClick`
+- **Settings dialog**: Scrollable, organized into Profile / General / Shortcuts sections
+
+---
+
+## Refactoring & Cleanup
+
+### Backend dead code removed
+| File | Removed |
+|---|---|
+| `apps/common/pagination.py` | Deleted (unused + DRF setting reference removed) |
+| `apps/common/permissions.py` | Deleted (empty file) |
+| `apps/common/utils.py` | Removed `unique_slug` |
+| `apps/authentication/serializers.py` | Removed `TokenPairSerializer` |
+| `apps/chat/models.py` | Removed `Message.Status`, `Message.has_attachments`, `Conversation.members_qs` |
+| `apps/chat/serializers.py` | Removed unused `TypingStatus` import, `MessageCreateSerializer` |
+| `apps/users/views.py` | Removed unused `django.db.models` import |
+
+### Frontend dead code removed
+| Item | Removed |
+|---|---|
+| 43 shadcn/ui component files | Deleted (only `dialog.tsx` + `dropdown-menu.tsx` kept) |
+| `hooks/use-mobile.tsx` | Deleted (unused hook) |
+| `routes/README.md` | Deleted |
+| `lib/format.ts` | Removed `formatDistanceToNowStrict` re-export |
+| `hooks/useChatWebSocket.ts` | Removed unused `sendRead` function |
+| `lib/backend.ts` | Un-exported `UIReaction`, `BackendContact`, `AuthPayload`, `RegisterPayload` |
+| `routes/index.tsx` | Removed unused `handleKeyboardNav` variable |
+
+### Constants extracted
+| File | New |
+|---|---|
+| `lib/constants.ts` | `MAX_FILES_PER_MESSAGE`, `ACCEPTED_FILE_TYPES`, `DISAPPEARING_DURATIONS` |
+| `components/signal/ChatWindow.tsx` | Imports from `lib/constants.ts` |
+
+---
+
+## Final Verification
 
 - **TypeScript**: `npx tsc --noEmit` — 0 errors
 - **Django check**: `manage.py check` — 0 issues
-- **pytest**: 5 tests passed
-- **Vite build**: Successful (both client and SSR)
+- **pytest**: 5/5 tests passed
+- **Vite build**: All 3 environments (client, SSR, Nitro) built successfully
 - **No regressions**: All existing functionality preserved
-
-## Files Modified
-- `backend/apps/chat/models.py` — Disappearing message fields + MessageQuerySet
-- `backend/apps/chat/views.py` — Attachment handling, disappearing toggle, cleanup
-- `backend/apps/chat/serializers.py` — Reply context, expires_at, disappearing_duration
-- `backend/apps/chat/services.py` — Auto-compute expires_at
-- `backend/apps/chat/urls.py` — New endpoints
-- `backend/apps/chat/migrations/0003_*` — New migration
-- `Frontend/src/lib/backend.ts` — Files in sendMessage, setDisappearingDuration
-- `Frontend/src/lib/adapters.ts` — UIAttachment, reply fields, expiresAt, disappearingDuration
-- `Frontend/src/lib/api-routes.ts` — DISAPPEARING route
-- `Frontend/src/hooks/useKeyboardShortcuts.ts` — New hook
-- `Frontend/src/components/signal/ChatWindow.tsx` — All UI features
-- `Frontend/src/components/signal/SettingsDialog.tsx` — Keyboard shortcuts card
-- `Frontend/src/routes/index.tsx` — All mutations and wiring

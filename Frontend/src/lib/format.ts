@@ -1,4 +1,4 @@
-import { formatDistanceToNowStrict, format, isToday, isYesterday, differenceInDays } from "date-fns";
+import { format, isToday, isYesterday, differenceInDays } from "date-fns";
 
 export function formatConversationTime(d: Date) {
   if (isToday(d)) {
@@ -21,5 +21,3 @@ export function formatDayDivider(d: Date) {
   if (isYesterday(d)) return "Yesterday";
   return format(d, "EEEE, MMMM d");
 }
-
-export { formatDistanceToNowStrict };

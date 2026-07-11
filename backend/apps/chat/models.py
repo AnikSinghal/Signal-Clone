@@ -45,10 +45,6 @@ class Conversation(models.Model):
     def is_group(self):
         return self.conversation_type == self.ConversationType.GROUP
 
-    @property
-    def members_qs(self):
-        return self.members.select_related("user", "user__profile")
-
     def display_title_for(self, user):
         if self.title:
             return self.title
@@ -81,11 +77,6 @@ class ConversationMember(models.Model):
 
 
 class Message(models.Model):
-    class Status(models.TextChoices):
-        SENT = "sent", "Sent"
-        DELIVERED = "delivered", "Delivered"
-        READ = "read", "Read"
-
     objects = MessageQuerySet.as_manager()
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -101,10 +92,6 @@ class Message(models.Model):
 
     class Meta:
         ordering = ["created_at"]
-
-    @property
-    def has_attachments(self):
-        return self.attachments.exists()
 
 
 class Attachment(models.Model):

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Search, SquarePen, MoreHorizontal, MessageSquare, Phone, Archive, Settings, Filter, Users, UserPlus, CheckCheck } from "lucide-react";
+import { Search, SquarePen, MoreHorizontal, MessageSquare, Phone, Archive, Settings, Filter, Users, UserPlus } from "lucide-react";
 import { Avatar } from "./Avatar";
 import type { UIConversation } from "@/lib/adapters";
 import { formatConversationTime } from "@/lib/format";

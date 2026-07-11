@@ -210,7 +210,7 @@ function SignalApp() {
     },
   });
 
-  const handleKeyboardNav = useKeyboardShortcuts(
+  useKeyboardShortcuts(
     {
       onSearch: () => {
         window.dispatchEvent(new CustomEvent("signal:toggle-search"));
@@ -244,12 +244,13 @@ function SignalApp() {
     const allUsers = [
       currentUserQuery.data ? toUIUser(currentUserQuery.data) : null,
       ...(contactsQuery.data ?? []).map((contact) => toUIUser(contact.contact_user)),
+      ...(groupsQuery.data ?? []).flatMap((group) => group.members.map((m) => toUIUser(m.user))),
     ].filter(Boolean) as UIUser[];
     for (const user of allUsers) {
       map.set(user.id, user);
     }
     return map;
-  }, [contactsQuery.data, currentUserQuery.data]);
+  }, [contactsQuery.data, currentUserQuery.data, groupsQuery.data]);
 
   const currentUser = currentUserQuery.data ? toUIUser(currentUserQuery.data) : null;
 
@@ -443,9 +444,11 @@ function SignalApp() {
           group={selectedGroup}
           currentUserId={currentUser?.id ?? ""}
           users={(contactsQuery.data ?? []).map((c) => toUIUser(c.contact_user))}
+          contactIds={contactIds}
           isAdmin={selectedGroup.members.some((m) => String(m.user.id) === currentUser?.id && m.is_admin)}
           onAddMember={handleAddGroupMember}
           onRemoveMember={handleRemoveGroupMember}
+          onAddContact={(userId) => addContactMutation.mutateAsync(userId)}
         />
       )}
       <Toaster position="bottom-right" />
