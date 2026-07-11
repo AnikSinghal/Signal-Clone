@@ -6,7 +6,7 @@ import { formatMessageTime, formatDayDivider } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
-  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator,
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { useChatWebSocket } from "@/hooks/useChatWebSocket";
 
@@ -65,6 +65,9 @@ export function ChatWindow({
       if (already) return prev;
       return [...prev, msg];
     });
+    if (msg.senderId !== currentUserId) {
+      onMarkRead?.().catch(() => undefined);
+    }
   }).current;
 
   const handleRefresh = useRef(() => {
@@ -84,6 +87,8 @@ export function ChatWindow({
   const { remoteTyping, sendMessage: wsSend, sendTyping: wsSendTyping } = useChatWebSocket({
     conversationId: conversation.id,
     currentUserId,
+    conversationName: conversation.name,
+    isGroup: conversation.type === "group",
     onMessage: handleWsMessage,
     onRefresh: handleRefresh,
     onReadReceipt: handleReadReceipt,
@@ -92,6 +97,10 @@ export function ChatWindow({
   useEffect(() => {
     setLocalMessages(messages);
   }, [conversation.id, messages]);
+
+  useEffect(() => {
+    onMarkRead?.().catch(() => undefined);
+  }, [conversation.id]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
@@ -205,6 +214,32 @@ export function ChatWindow({
           {conversation.type === "group" && onOpenGroupMembers && (
             <HeaderBtn label="Group info" onClick={onOpenGroupMembers}><Users size={18} /></HeaderBtn>
           )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className="grid h-9 w-9 place-items-center rounded-lg hover:bg-signal-hover"
+                aria-label="Disappearing messages"
+                title={conversation.disappearingDuration ? `Disappearing: ${conversation.disappearingDuration}s` : "Disappearing messages: Off"}
+              >
+                <Hourglass size={18} className={conversation.disappearingDuration ? "text-signal-accent" : ""} />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuLabel className="text-[10px] font-semibold uppercase text-signal-muted">Disappearing Messages</DropdownMenuLabel>
+              {[
+                { value: 0, label: "Off" },
+                { value: 30, label: "30 Seconds" },
+                { value: 300, label: "5 Minutes" },
+                { value: 3600, label: "1 Hour" },
+                { value: 86400, label: "1 Day" },
+              ].map((opt) => (
+                <DropdownMenuItem key={opt.value} onSelect={() => onSetDisappearing?.(opt.value)}>
+                  <span className="mr-2 w-4 text-center">{conversation.disappearingDuration === opt.value ? "✓" : ""}</span>
+                  {opt.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
           <HeaderBtn label="Search" onClick={() => setShowSearch((v) => !v)}>
             <Search size={18} />
           </HeaderBtn>
@@ -213,33 +248,13 @@ export function ChatWindow({
               <HeaderBtn label="More"><MoreVertical size={18} /></HeaderBtn>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => onMarkRead?.()}>
+              <DropdownMenuItem onSelect={() => onMarkRead?.()}>
                 <CheckCheck size={14} className="mr-2" />Mark as read
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <div className="px-2 py-1 text-[10px] font-semibold uppercase text-signal-muted">Disappearing Messages</div>
-              <DropdownMenuItem onClick={() => onSetDisappearing?.(0)}>
-                {conversation.disappearingDuration === 0 ? "✓ " : ""}Off
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onSetDisappearing?.(30)}>
-                {conversation.disappearingDuration === 30 ? "✓ " : ""}30 Seconds
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onSetDisappearing?.(300)}>
-                {conversation.disappearingDuration === 300 ? "✓ " : ""}5 Minutes
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onSetDisappearing?.(3600)}>
-                {conversation.disappearingDuration === 3600 ? "✓ " : ""}1 Hour
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onSetDisappearing?.(86400)}>
-                {conversation.disappearingDuration === 86400 ? "✓ " : ""}1 Day
-              </DropdownMenuItem>
               {onArchive && (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => onArchive?.()}>
-                    Archive
-                  </DropdownMenuItem>
-                </>
+                <DropdownMenuItem onSelect={() => onArchive?.()}>
+                  Archive
+                </DropdownMenuItem>
               )}
             </DropdownMenuContent>
           </DropdownMenu>
@@ -450,7 +465,7 @@ function MessageBubble({
           </span>
         )}
         <div className="flex items-center gap-1.5">
-          {me && <MessageActions onReact={onReact} onDelete={onDelete} onReply={onReply} status={statusLabel} left />}
+          {me && <MessageActions onReact={onReact} onDelete={onDelete} onReply={onReply} status={statusLabel} content={message.content} left />}
           <div
             className={cn(
               "relative rounded-2xl px-3.5 py-2 text-[14px] leading-snug shadow-sm",
@@ -498,14 +513,14 @@ function MessageBubble({
               </div>
             )}
           </div>
-          {!me && <MessageActions onReact={onReact} onDelete={onDelete} onReply={onReply} />}
+          {!me && <MessageActions onReact={onReact} onDelete={onDelete} onReply={onReply} content={message.content} />}
         </div>
       </div>
     </div>
   );
 }
 
-function MessageActions({ onReact, onDelete, onReply, left, status }: { onReact: (e: string) => void; onDelete: () => void; onReply: () => void; left?: boolean; status?: string }) {
+function MessageActions({ onReact, onDelete, onReply, left, status, content }: { onReact: (e: string) => void; onDelete: () => void; onReply: () => void; left?: boolean; status?: string; content?: string }) {
   return (
     <div className={cn("flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100", left && "order-first")}>
       <DropdownMenu>
@@ -527,13 +542,13 @@ function MessageActions({ onReact, onDelete, onReply, left, status }: { onReact:
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={onReply}><Reply size={14} className="mr-2" />Reply</DropdownMenuItem>
-          <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(status || ""); }}>Copy</DropdownMenuItem>
+          <DropdownMenuItem onSelect={onReply}><Reply size={14} className="mr-2" />Reply</DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => { navigator.clipboard.writeText(content || ""); toast.success("Copied to clipboard"); }}>Copy</DropdownMenuItem>
           <DropdownMenuItem disabled className="text-xs text-signal-muted cursor-default">
             Status: {status || "Unknown"}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem className="text-red-600 focus:text-red-600" onClick={onDelete}>
+          <DropdownMenuItem className="text-red-600 focus:text-red-600" onSelect={onDelete}>
             <Trash2 size={14} className="mr-2" />Delete
           </DropdownMenuItem>
         </DropdownMenuContent>

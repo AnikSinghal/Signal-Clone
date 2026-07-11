@@ -71,8 +71,8 @@ export function Sidebar({
                 <IconBtn label="More"><MoreHorizontal size={18} /></IconBtn>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                {onOpenNewGroup && <DropdownMenuItem onClick={onOpenNewGroup}><UserPlus size={14} className="mr-2" />New group</DropdownMenuItem>}
-                <DropdownMenuItem onClick={onOpenSettings}><Settings size={14} className="mr-2" />Settings</DropdownMenuItem>
+                {onOpenNewGroup && <DropdownMenuItem onSelect={onOpenNewGroup}><UserPlus size={14} className="mr-2" />New group</DropdownMenuItem>}
+                <DropdownMenuItem onSelect={onOpenSettings}><Settings size={14} className="mr-2" />Settings</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -190,7 +190,7 @@ function ConversationRow({ c, active, onClick, onArchive }: { c: UIConversation;
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-            <DropdownMenuItem onClick={() => { onArchive(c.id); setMenuOpen(false); }}>
+            <DropdownMenuItem onSelect={() => { onArchive(c.id); setMenuOpen(false); }}>
               <Archive size={14} className="mr-2" />{c.archived ? "Unarchive" : "Archive"}
             </DropdownMenuItem>
           </DropdownMenuContent>

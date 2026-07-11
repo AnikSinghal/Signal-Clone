@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import type { UIMessage } from "@/lib/adapters";
 
 type WebSocketEvent =
-  | { type: "message"; message: { id: string; sender?: { id: number }; content: string; created_at?: string } }
+  | { type: "message"; message: { id: string; sender?: { id: number; name?: string }; content: string; created_at?: string } }
   | { type: "typing"; value: boolean; user_id: string }
   | { type: "reaction"; user_id: string; emoji: string; deleted: boolean }
   | { type: "read"; user_id: string };
@@ -12,12 +12,16 @@ type WebSocketEvent =
 export function useChatWebSocket({
   conversationId,
   currentUserId,
+  conversationName,
+  isGroup,
   onMessage,
   onRefresh,
   onReadReceipt,
 }: {
   conversationId: string;
   currentUserId: string;
+  conversationName?: string;
+  isGroup?: boolean;
   onMessage: (msg: UIMessage) => void;
   onRefresh: () => void;
   onReadReceipt?: () => void;
@@ -56,6 +60,13 @@ export function useChatWebSocket({
         try {
           const payload = JSON.parse(event.data as string) as WebSocketEvent;
           if (payload.type === "message" && payload.message) {
+            const senderId = String(payload.message.sender?.id ?? "");
+            if (senderId !== currentUserId) {
+              const senderName = payload.message.sender?.name || "Someone";
+              const preview = payload.message.content?.slice(0, 80) || "Attachment";
+              const title = isGroup && conversationName ? `${senderName} — ${conversationName}` : senderName;
+              toast(title, { description: preview });
+            }
             onMessageRef.current({
               id: payload.message.id,
               conversationId,
